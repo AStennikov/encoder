@@ -71,6 +71,13 @@ const osThreadAttr_t myTask02_attributes = {
   .priority = (osPriority_t) osPriorityLow,
   .stack_size = 128 * 4
 };
+/* Definitions for greenLED_Blink */
+osThreadId_t greenLED_BlinkHandle;
+const osThreadAttr_t greenLED_Blink_attributes = {
+  .name = "greenLED_Blink",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
 /* Definitions for myQueue01 */
 osMessageQueueId_t myQueue01Handle;
 const osMessageQueueAttr_t myQueue01_attributes = {
@@ -89,6 +96,7 @@ void thread3(void *argument);
 
 void thread1(void *argument);
 void thread2(void *argument);
+void threadGreenLED(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -132,6 +140,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of myTask02 */
   myTask02Handle = osThreadNew(thread2, NULL, &myTask02_attributes);
 
+  /* creation of greenLED_Blink */
+  greenLED_BlinkHandle = osThreadNew(threadGreenLED, NULL, &greenLED_Blink_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   myTask03Handle = osThreadNew(thread3, NULL, &myTask03_attributes);
@@ -153,16 +164,17 @@ void MX_FREERTOS_Init(void) {
 void thread1(void *argument)
 {
   /* USER CODE BEGIN thread1 */
-	TickType_t xLastWakeTime;
+	/*TickType_t xLastWakeTime;
 	 const TickType_t xFrequency = 1000;
 	 // Initialize the xLastWakeTime variable with the current time.
-	 xLastWakeTime = xTaskGetTickCount();
+	 xLastWakeTime = xTaskGetTickCount();*/
 
   /* Infinite loop */
   for(;;)
   {
+	  osDelay(500);
 	  // Wait for the next cycle.
-	  vTaskDelayUntil( &xLastWakeTime, xFrequency );
+	  /*vTaskDelayUntil( &xLastWakeTime, xFrequency );
 
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 	  osDelay(50);
@@ -174,16 +186,16 @@ void thread1(void *argument)
 	  //osDelay(500);
 	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
-	  xSemaphoreGive(uartMutexHandle);
+	  xSemaphoreGive(uartMutexHandle);*/
 
 
-	  uint8_t data = 0x41;
-	  osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
+	  //uint8_t data = 0x41;
+	  //osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
 
 	  /*uint32_t data = 0x00000041;
 	  xQueueSend(Global_Queue_Handle, &data, 100);*/
 
-	  xTaskNotify(myTask03Handle, 0x01, eSetBits );
+	  //xTaskNotify(myTask03Handle, 0x01, eSetBits );
 
   }
   /* USER CODE END thread1 */
@@ -205,6 +217,36 @@ void thread2(void *argument)
     osDelay(1);
   }
   /* USER CODE END thread2 */
+}
+
+/* USER CODE BEGIN Header_threadGreenLED */
+/**
+* @brief Function implementing the greenLED_Blink thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_threadGreenLED */
+void threadGreenLED(void *argument)
+{
+	/* USER CODE BEGIN threadGreenLED */
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 1000;
+	// Initialize the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+
+	/* Infinite loop */
+	for(;;)
+	{
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+		osDelay(50);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+		osDelay(100);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+		osDelay(350);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+	}
+	/* USER CODE END threadGreenLED */
 }
 
 /* Private application code --------------------------------------------------*/
