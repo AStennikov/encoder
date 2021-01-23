@@ -57,10 +57,10 @@ const osThreadAttr_t myTask03_attributes = {
   .stack_size = 128 * 4
 };
 /* USER CODE END Variables */
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
+/* Definitions for PID */
+osThreadId_t PIDHandle;
+const osThreadAttr_t PID_attributes = {
+  .name = "PID",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
@@ -94,7 +94,7 @@ const osMutexAttr_t uartMutex_attributes = {
 void thread3(void *argument);
 /* USER CODE END FunctionPrototypes */
 
-void thread1(void *argument);
+void threadPID_Loop(void *argument);
 void thread2(void *argument);
 void threadGreenLED(void *argument);
 
@@ -134,8 +134,8 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(thread1, NULL, &defaultTask_attributes);
+  /* creation of PID */
+  PIDHandle = osThreadNew(threadPID_Loop, NULL, &PID_attributes);
 
   /* creation of myTask02 */
   myTask02Handle = osThreadNew(thread2, NULL, &myTask02_attributes);
@@ -154,51 +154,22 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_thread1 */
+/* USER CODE BEGIN Header_threadPID_Loop */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the PID thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_thread1 */
-void thread1(void *argument)
+/* USER CODE END Header_threadPID_Loop */
+void threadPID_Loop(void *argument)
 {
-  /* USER CODE BEGIN thread1 */
-	/*TickType_t xLastWakeTime;
-	 const TickType_t xFrequency = 1000;
-	 // Initialize the xLastWakeTime variable with the current time.
-	 xLastWakeTime = xTaskGetTickCount();*/
-
+  /* USER CODE BEGIN threadPID_Loop */
   /* Infinite loop */
   for(;;)
   {
-	  osDelay(500);
-	  // Wait for the next cycle.
-	  /*vTaskDelayUntil( &xLastWakeTime, xFrequency );
-
-	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
-	  osDelay(50);
-	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-	  osDelay(100);
-	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
-	  osDelay(350);
-	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-	  //osDelay(500);
-	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
-	  xSemaphoreGive(uartMutexHandle);*/
-
-
-	  //uint8_t data = 0x41;
-	  //osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
-
-	  /*uint32_t data = 0x00000041;
-	  xQueueSend(Global_Queue_Handle, &data, 100);*/
-
-	  //xTaskNotify(myTask03Handle, 0x01, eSetBits );
-
+    osDelay(1);
   }
-  /* USER CODE END thread1 */
+  /* USER CODE END threadPID_Loop */
 }
 
 /* USER CODE BEGIN Header_thread2 */
@@ -228,7 +199,7 @@ void thread2(void *argument)
 /* USER CODE END Header_threadGreenLED */
 void threadGreenLED(void *argument)
 {
-	/* USER CODE BEGIN threadGreenLED */
+  /* USER CODE BEGIN threadGreenLED */
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = 1000;
 	// Initialize the xLastWakeTime variable with the current time.
@@ -246,7 +217,7 @@ void threadGreenLED(void *argument)
 		osDelay(350);
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 	}
-	/* USER CODE END threadGreenLED */
+  /* USER CODE END threadGreenLED */
 }
 
 /* Private application code --------------------------------------------------*/
