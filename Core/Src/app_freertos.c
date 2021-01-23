@@ -22,8 +22,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
+#include "usart.h"
 #include "cmsis_os.h"
 #include "stm32g4xx_hal_gpio.h"
+#include "stm32g4xx_hal_uart.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -147,6 +150,7 @@ void thread1(void *argument)
 	  osDelay(350);
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 	  osDelay(500);
+	  HAL_UART_Transmit(&huart1, (uint8_t*) "UART1\n\r", 7, 1);
 
   }
   /* USER CODE END thread1 */
