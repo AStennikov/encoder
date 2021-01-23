@@ -145,18 +145,25 @@ void MX_FREERTOS_Init(void) {
 void thread1(void *argument)
 {
   /* USER CODE BEGIN thread1 */
+	TickType_t xLastWakeTime;
+	 const TickType_t xFrequency = 1000;
+	 // Initialise the xLastWakeTime variable with the current time.
+	 xLastWakeTime = xTaskGetTickCount();
+
   /* Infinite loop */
   for(;;)
   {
+	  // Wait for the next cycle.
+	  vTaskDelayUntil( &xLastWakeTime, xFrequency );
+
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
-	  //HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 	  osDelay(50);
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 	  osDelay(100);
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 	  osDelay(350);
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-	  osDelay(500);
+	  //osDelay(500);
 	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
 	  xSemaphoreGive(uartMutexHandle);
