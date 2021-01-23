@@ -161,6 +161,8 @@ void thread1(void *argument)
 	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
 	  xSemaphoreGive(uartMutexHandle);
 
+	  xTaskNotify(myTask03Handle, 0x01, eSetBits );
+
   }
   /* USER CODE END thread1 */
 }
@@ -188,12 +190,16 @@ void thread2(void *argument)
 void thread3(void *argument)
 {
   /* Infinite loop */
+	uint32_t notifValue;
+
   for(;;)
   {
-	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread3\n\r", 9, 1);
-	  xSemaphoreGive(uartMutexHandle);
-	  osDelay(500);
+	  xTaskNotifyWait(pdFALSE, 0xFF, &notifValue, portMAX_DELAY);	// waits for notification from another thread
+	  if ((notifValue & 0x01) != 0x00) {	// if notification value is 0x01
+		  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		  HAL_UART_Transmit(&huart1, (uint8_t*) "thread3\n\r", 9, 1);
+		  xSemaphoreGive(uartMutexHandle);
+	  }
   }
 }
 /* USER CODE END Application */
