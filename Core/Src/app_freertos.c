@@ -22,16 +22,15 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#include "usart.h"
 #include "cmsis_os.h"
-#include "semphr.h"
-#include "stm32g4xx_hal_gpio.h"
-#include "stm32g4xx_hal_uart.h"
-
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usart.h"
+#include "semphr.h"
+#include "queue.h"
+#include "stm32g4xx_hal_gpio.h"
+#include "stm32g4xx_hal_uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,6 +70,11 @@ const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
   .priority = (osPriority_t) osPriorityLow,
   .stack_size = 128 * 4
+};
+/* Definitions for myQueue01 */
+osMessageQueueId_t myQueue01Handle;
+const osMessageQueueAttr_t myQueue01_attributes = {
+  .name = "myQueue01"
 };
 /* Definitions for uartMutex */
 osMutexId_t uartMutexHandle;
@@ -113,6 +117,10 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of myQueue01 */
+  myQueue01Handle = osMessageQueueNew (100, sizeof(uint8_t), &myQueue01_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -147,7 +155,7 @@ void thread1(void *argument)
   /* USER CODE BEGIN thread1 */
 	TickType_t xLastWakeTime;
 	 const TickType_t xFrequency = 1000;
-	 // Initialise the xLastWakeTime variable with the current time.
+	 // Initialize the xLastWakeTime variable with the current time.
 	 xLastWakeTime = xTaskGetTickCount();
 
   /* Infinite loop */
@@ -168,7 +176,14 @@ void thread1(void *argument)
 	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
 	  xSemaphoreGive(uartMutexHandle);
 
-	  xTaskNotify(myTask03Handle, 0x01, eSetBits );
+
+	  //uint8_t data = 0x41;
+	  //osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
+
+	  /*uint32_t data = 0x00000041;
+	  xQueueSend(Global_Queue_Handle, &data, 100);
+
+	  xTaskNotify(myTask03Handle, 0x01, eSetBits );*/
 
   }
   /* USER CODE END thread1 */
@@ -199,6 +214,9 @@ void thread3(void *argument)
   /* Infinite loop */
 	uint32_t notifValue;
 
+	uint8_t msg;
+	osStatus_t status;
+
   for(;;)
   {
 	  xTaskNotifyWait(pdFALSE, 0xFF, &notifValue, portMAX_DELAY);	// waits for notification from another thread
@@ -206,6 +224,21 @@ void thread3(void *argument)
 		  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		  HAL_UART_Transmit(&huart1, (uint8_t*) "thread3\n\r", 9, 1);
 		  xSemaphoreGive(uartMutexHandle);
+
+		  /*status = osMessageQueueGet(myQueue01Handle, &msg, NULL, 0U);   // wait for message
+		  if (status == osOK) {
+			  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+			  HAL_UART_Transmit(&huart1, &msg, 1, 10);
+			  xSemaphoreGive(uartMutexHandle);
+
+
+		  }*/
+
+		  /*uint8_t buffer;
+		  xQueueReceive(Global_Queue_Handle, &buffer, 100);
+		  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		  HAL_UART_Transmit(&huart1, &buffer, 1, 10);
+		  xSemaphoreGive(uartMutexHandle);*/
 	  }
   }
 }
