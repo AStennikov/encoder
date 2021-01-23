@@ -177,13 +177,13 @@ void thread1(void *argument)
 	  xSemaphoreGive(uartMutexHandle);
 
 
-	  //uint8_t data = 0x41;
-	  //osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
+	  uint8_t data = 0x41;
+	  osMessageQueuePut (myQueue01Handle, &data, 0U, 10);
 
 	  /*uint32_t data = 0x00000041;
-	  xQueueSend(Global_Queue_Handle, &data, 100);
+	  xQueueSend(Global_Queue_Handle, &data, 100);*/
 
-	  xTaskNotify(myTask03Handle, 0x01, eSetBits );*/
+	  xTaskNotify(myTask03Handle, 0x01, eSetBits );
 
   }
   /* USER CODE END thread1 */
@@ -225,14 +225,14 @@ void thread3(void *argument)
 		  HAL_UART_Transmit(&huart1, (uint8_t*) "thread3\n\r", 9, 1);
 		  xSemaphoreGive(uartMutexHandle);
 
-		  /*status = osMessageQueueGet(myQueue01Handle, &msg, NULL, 0U);   // wait for message
+		  status = osMessageQueueGet(myQueue01Handle, &msg, NULL, 0U);   // wait for message
 		  if (status == osOK) {
 			  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 			  HAL_UART_Transmit(&huart1, &msg, 1, 10);
 			  xSemaphoreGive(uartMutexHandle);
 
 
-		  }*/
+		  }
 
 		  /*uint8_t buffer;
 		  xQueueReceive(Global_Queue_Handle, &buffer, 100);
