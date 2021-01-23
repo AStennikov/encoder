@@ -51,7 +51,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+osThreadId_t myTask03Handle;
+const osThreadAttr_t myTask03_attributes = {
+  .name = "myTask03",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -75,7 +80,7 @@ const osMutexAttr_t uartMutex_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void thread3(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void thread1(void *argument);
@@ -121,6 +126,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  myTask03Handle = osThreadNew(thread3, NULL, &myTask03_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -152,7 +158,7 @@ void thread1(void *argument)
 	  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 	  osDelay(500);
 	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-	  HAL_UART_Transmit(&huart1, (uint8_t*) "UART1\n\r", 7, 1);
+	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread1\n\r", 9, 1);
 	  xSemaphoreGive(uartMutexHandle);
 
   }
@@ -179,7 +185,17 @@ void thread2(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+void thread3(void *argument)
+{
+  /* Infinite loop */
+  for(;;)
+  {
+	  xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+	  HAL_UART_Transmit(&huart1, (uint8_t*) "thread3\n\r", 9, 1);
+	  xSemaphoreGive(uartMutexHandle);
+	  osDelay(500);
+  }
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
