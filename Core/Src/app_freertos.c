@@ -31,6 +31,7 @@
 #include "queue.h"
 #include "stm32g4xx_hal_gpio.h"
 #include "stm32g4xx_hal_uart.h"
+#include "hall_sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -163,13 +164,32 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_threadPID_Loop */
 void threadPID_Loop(void *argument)
 {
-  /* USER CODE BEGIN threadPID_Loop */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END threadPID_Loop */
+	/* USER CODE BEGIN threadPID_Loop */
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 1000;	// TEMPORARY, set to 10ms after no UART interaction is needed
+	// Initialize the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+
+	uint16_t hallSensorValues[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+
+	/* Infinite loop */
+	for(;;)
+	{
+		// rough pseudocode:
+		// 		get hall sensor readings
+		// 		calculate position
+		// 		calculate PID parameters
+		// 		set PWM
+		// 		wait until next cycle
+
+
+
+
+
+		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
+	}
+	/* USER CODE END threadPID_Loop */
 }
 
 /* USER CODE BEGIN Header_thread2 */
