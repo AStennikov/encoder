@@ -32,6 +32,7 @@
 #include "stm32g4xx_hal_gpio.h"
 #include "stm32g4xx_hal_uart.h"
 #include "hall_sensor.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -164,7 +165,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_threadPID_Loop */
 void threadPID_Loop(void *argument)
 {
-	/* USER CODE BEGIN threadPID_Loop */
+  /* USER CODE BEGIN threadPID_Loop */
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = 1000;	// TEMPORARY, set to 10ms after no UART interaction is needed
 	// Initialize the xLastWakeTime variable with the current time.
@@ -182,14 +183,59 @@ void threadPID_Loop(void *argument)
 		// 		calculate PID parameters
 		// 		set PWM
 		// 		wait until next cycle
+		updateHallSensorValues(hallSensorValues);
 
-
-
-
+		// print number through uart
+		uint8_t str[102];
+		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[0], hallSensorValues[1], hallSensorValues[2], hallSensorValues[3]);
+		/*sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d\n\r",
+				hallSensorValues[0],
+				hallSensorValues[1],
+				hallSensorValues[2],
+				hallSensorValues[3],
+				hallSensorValues[4],
+				hallSensorValues[5],
+				hallSensorValues[6],
+				hallSensorValues[7],
+				hallSensorValues[8],
+				hallSensorValues[9],
+				hallSensorValues[10],
+				hallSensorValues[11],
+				hallSensorValues[12],
+				hallSensorValues[13],
+				hallSensorValues[14],
+				hallSensorValues[15],
+				hallSensorValues[16],
+				hallSensorValues[17],
+				hallSensorValues[18],
+				hallSensorValues[19]);*/
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		//HAL_UART_Transmit(&huart1, str, 101, 100);
+		HAL_UART_Transmit(&huart1, str, 21, 100);
+		xSemaphoreGive(uartMutexHandle);
+		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[4], hallSensorValues[5], hallSensorValues[6], hallSensorValues[7]);
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, str, 21, 100);
+		xSemaphoreGive(uartMutexHandle);
+		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[8], hallSensorValues[9], hallSensorValues[10], hallSensorValues[11]);
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, str, 21, 100);
+		xSemaphoreGive(uartMutexHandle);
+		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[12], hallSensorValues[13], hallSensorValues[14], hallSensorValues[15]);
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, str, 21, 100);
+		xSemaphoreGive(uartMutexHandle);
+		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[16], hallSensorValues[17], hallSensorValues[18], hallSensorValues[19]);
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, str, 21, 100);
+		xSemaphoreGive(uartMutexHandle);
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t*) "--------\n\r", 10, 100);
+		xSemaphoreGive(uartMutexHandle);
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}
-	/* USER CODE END threadPID_Loop */
+  /* USER CODE END threadPID_Loop */
 }
 
 /* USER CODE BEGIN Header_thread2 */
