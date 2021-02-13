@@ -26,6 +26,8 @@
 #define GROUP5_GPIO_Port GPIOC
 */
 
+#define SENSOR_COUNT 20
+
 // activates a certain sensor group
 void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint32_t delay){
 	// sets all pins low
@@ -46,19 +48,23 @@ void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint32_t delay)
 }
 
 // sensors are not located in a nice incremental order, so the readings are rearranged with the help of a look-up table
-const uint32_t sensorOrderLUT[20] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
+const uint32_t sensorOrderLUT[SENSOR_COUNT] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
 
 // sensors' offset voltage, obtained with sensorArrayOffset.py
-const uint16_t sensorOffsets[20] = {1955, 1945, 1934, 1946, 1945, 1938, 1923, 1914, 1958, 1925, 1958, 1921,
+const int16_t sensorOffsets[SENSOR_COUNT] = {1955, 1945, 1934, 1946, 1945, 1938, 1923, 1914, 1958, 1925, 1958, 1921,
 		 1954, 1938, 1956, 1961, 1916, 1958, 1935, 1975};
 
 
 
-//void applyOffsets(uint16_t* values)
+void removeOffsets(int16_t* values) {
+	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
+			values[i]-= sensorOffsets[i];
+	}
+}
 
 // reads ADC values and stores them into the provided array
-void updateHallSensorValues(uint16_t* values){
-	uint16_t buffer[20];
+void updateHallSensorValues(int16_t* values){
+	int16_t buffer[SENSOR_COUNT];
 
 	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin, 1000);	// enable group 1
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
@@ -86,10 +92,14 @@ void updateHallSensorValues(uint16_t* values){
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	// rearranging the values according to the look-up table
-	for (uint16_t i=0; i<20; ++i) {
-		values[i] = (uint16_t) buffer[sensorOrderLUT[i]];
-		//values[i] = (uint16_t) sensorOrderLUT[i];
+	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
+		values[i] = buffer[sensorOrderLUT[i]];
 	}
+
+	// removing offsets
+	removeOffsets(values);
+
+
 
 	//HAL_ADC_Stop_DMA(ADC_HandleTypeDef *hadc)
 

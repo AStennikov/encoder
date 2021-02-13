@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include "main.h"
 
-void updateHallSensorValues(uint16_t* values);
+void updateHallSensorValues(int16_t* values);
 
 
 #endif /* INC_HALL_SENSOR_H_ */
