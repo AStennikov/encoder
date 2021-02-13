@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include "main.h"
 
-
 void updateHallSensorValues(uint16_t* values);
 
 

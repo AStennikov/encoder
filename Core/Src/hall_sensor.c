@@ -45,32 +45,51 @@ void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint32_t delay)
 	for (volatile uint32_t i=0; i<delay; ++i){}
 }
 
+// sensors are not located in a nice incremental order, so the readings are rearranged with the help of a look-up table
+const uint32_t sensorOrderLUT[20] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
+
+// sensors' offset voltage, obtained with sensorArrayOffset.py
+const uint16_t sensorOffsets[20] = {1955, 1945, 1934, 1946, 1945, 1938, 1923, 1914, 1958, 1925, 1958, 1921,
+		 1954, 1938, 1956, 1961, 1916, 1958, 1935, 1975};
+
+
+
+//void applyOffsets(uint16_t* values)
+
 // reads ADC values and stores them into the provided array
 void updateHallSensorValues(uint16_t* values){
+	uint16_t buffer[20];
+
 	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin, 1000);	// enable group 1
-	HAL_ADC_Start_DMA(&hadc2, &values[0], 4);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin, 1000);	// enable group 2
-	HAL_ADC_Start_DMA(&hadc2, &values[4], 4);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[4]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin, 1000);	// enable group 3
-	HAL_ADC_Start_DMA(&hadc2, &values[8], 4);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[8]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin, 1000);	// enable group 4
-	HAL_ADC_Start_DMA(&hadc2, &values[12], 4);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[12]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin, 1000);	// enable group 5
-	HAL_ADC_Start_DMA(&hadc2, &values[16], 4);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[16]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
+
+	// rearranging the values according to the look-up table
+	for (uint16_t i=0; i<20; ++i) {
+		values[i] = (uint16_t) buffer[sensorOrderLUT[i]];
+		//values[i] = (uint16_t) sensorOrderLUT[i];
+	}
 
 	//HAL_ADC_Stop_DMA(ADC_HandleTypeDef *hadc)
 

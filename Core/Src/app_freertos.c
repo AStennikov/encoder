@@ -33,6 +33,7 @@
 #include "stm32g4xx_hal_uart.h"
 #include "hall_sensor.h"
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -167,7 +168,7 @@ void threadPID_Loop(void *argument)
 {
   /* USER CODE BEGIN threadPID_Loop */
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 1000;	// TEMPORARY, set to 10ms after no UART interaction is needed
+	const TickType_t xFrequency = 100;	// TEMPORARY, set to 10ms after no UART interaction is needed
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
@@ -186,8 +187,25 @@ void threadPID_Loop(void *argument)
 		updateHallSensorValues(hallSensorValues);
 
 		// print number through uart
-		uint8_t str[102];
-		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[0], hallSensorValues[1], hallSensorValues[2], hallSensorValues[3]);
+		char str[130] = "";
+		for (uint8_t i=0; i<20; ++i) {
+			char number[8] = "";
+			sprintf(number, "%4.4d", hallSensorValues[i]);
+			strncat(str, number, 6);
+			if (i < 19) {
+				strncat(str, ",", 2);
+			} else {
+				strncat(str, "\n\r", 5);
+			}
+		}
+		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 1);
+		xSemaphoreGive(uartMutexHandle);
+
+
+
+		//uint8_t str[102];
+		//sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[0], hallSensorValues[1], hallSensorValues[2], hallSensorValues[3]);
 		/*sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d\n\r",
 				hallSensorValues[0],
 				hallSensorValues[1],
@@ -209,7 +227,7 @@ void threadPID_Loop(void *argument)
 				hallSensorValues[17],
 				hallSensorValues[18],
 				hallSensorValues[19]);*/
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		/*xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		//HAL_UART_Transmit(&huart1, str, 101, 100);
 		HAL_UART_Transmit(&huart1, str, 21, 100);
 		xSemaphoreGive(uartMutexHandle);
@@ -231,7 +249,7 @@ void threadPID_Loop(void *argument)
 		xSemaphoreGive(uartMutexHandle);
 		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		HAL_UART_Transmit(&huart1, (uint8_t*) "--------\n\r", 10, 100);
-		xSemaphoreGive(uartMutexHandle);
+		xSemaphoreGive(uartMutexHandle);*/
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}
