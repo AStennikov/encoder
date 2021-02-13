@@ -202,6 +202,19 @@ void threadPID_Loop(void *argument)
 				strncat(str, "\n\r", 5);
 			}
 		}
+
+
+		// temporary, control motor from keys
+		/*char input = 'w';
+		HAL_UART_Receive(&huart1, (uint8_t*) &input, 1, 0);
+		if (input == 'a') {
+			motorSet(-150);
+		} else if (input == 'd') {
+			motorSet(150);
+		} else {
+			motorSet(0);
+		}*/
+
 		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 1);
 		xSemaphoreGive(uartMutexHandle);
