@@ -34,6 +34,7 @@
 #include "hall_sensor.h"
 #include <stdio.h>
 #include <string.h>
+#include "motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -173,6 +174,9 @@ void threadPID_Loop(void *argument)
 	xLastWakeTime = xTaskGetTickCount();
 
 	int16_t hallSensorValues[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+	motorEnable();
+	motorSet(0);
 
 
 	/* Infinite loop */
