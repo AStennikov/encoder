@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "motor.h"
+#include "fdcan.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -169,7 +170,7 @@ void threadPID_Loop(void *argument)
 {
   /* USER CODE BEGIN threadPID_Loop */
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 100;	// TEMPORARY, set to 10ms after no UART interaction is needed
+	const TickType_t xFrequency = 1000;	// TEMPORARY, set to 10ms after no UART interaction is needed
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
@@ -179,9 +180,22 @@ void threadPID_Loop(void *argument)
 	motorSet(0);
 
 
+	/*// CAN message for transmission
+	FDCAN_TxHeaderTypeDef txh;
+	txh.Identifier = 0x7ff;
+	txh.IdType = FDCAN_STANDARD_ID;
+	txh.TxFrameType = FDCAN_DATA_FRAME;
+	txh.DataLength = FDCAN_DLC_BYTES_8;
+	txh.FDFormat = FDCAN_CLASSIC_CAN;
+	uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+	HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);*/
+
+
 	/* Infinite loop */
 	for(;;)
 	{
+		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+
 		// rough pseudocode:
 		// 		get hall sensor readings
 		// 		calculate position
@@ -204,16 +218,30 @@ void threadPID_Loop(void *argument)
 		}
 
 
+		//uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+		// transmit telemetry data via CAN
+		//uint8_t data[2];
+		//data[0] = (uint8_t) (hallSensorValues[0] >> 8);
+		//data[1] = (uint8_t) (hallSensorValues[0] >> 0);
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) hallSensorValues);
+		//CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 2, data);
+
 		// temporary, control motor from keys
-		/*char input = 'w';
+		char input = 'w';
 		HAL_UART_Receive(&huart1, (uint8_t*) &input, 1, 0);
 		if (input == 'a') {
 			motorSet(-150);
 		} else if (input == 'd') {
 			motorSet(150);
+		} else if (input == '\n') {
+
+		} else if (input == '\r') {
+
+		} else if (input == '\0') {
+
 		} else {
 			motorSet(0);
-		}*/
+		}
 
 		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 1);
@@ -268,6 +296,9 @@ void threadPID_Loop(void *argument)
 		HAL_UART_Transmit(&huart1, (uint8_t*) "--------\n\r", 10, 100);
 		xSemaphoreGive(uartMutexHandle);*/
 
+
+		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}
   /* USER CODE END threadPID_Loop */
@@ -310,13 +341,13 @@ void threadGreenLED(void *argument)
 	for(;;)
 	{
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
-		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+		/*HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 		osDelay(50);
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 		osDelay(100);
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 		osDelay(350);
-		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);*/
 	}
   /* USER CODE END threadGreenLED */
 }

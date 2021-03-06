@@ -38,13 +38,13 @@ void MX_FDCAN1_Init(void)
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
   hfdcan1.Init.NominalPrescaler = 1;
-  hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 2;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
+  hfdcan1.Init.NominalSyncJumpWidth = 4;
+  hfdcan1.Init.NominalTimeSeg1 = 11;
+  hfdcan1.Init.NominalTimeSeg2 = 4;
   hfdcan1.Init.DataPrescaler = 1;
-  hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 4;
+  hfdcan1.Init.DataTimeSeg1 = 11;
+  hfdcan1.Init.DataTimeSeg2 = 4;
   hfdcan1.Init.StdFiltersNbr = 0;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
@@ -109,6 +109,27 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+void CAN_SendSimple(uint32_t ID, uint32_t DLC, uint8_t *data)
+{
+	// CAN message for transmission
+	FDCAN_TxHeaderTypeDef txh;
+	txh.Identifier = ID;
+	txh.IdType = FDCAN_STANDARD_ID;
+	txh.TxFrameType = FDCAN_DATA_FRAME;
+	txh.DataLength = DLC << 16;	// shift is needed because then it matches FDCAN_data_length_code, which sets register value directly
+	txh.FDFormat = FDCAN_CLASSIC_CAN;
+
+	uint32_t timeout = 1000000;
+	while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {	// wait while CAN TX FIFO has no empty slots
+		--timeout;
+		if (timeout == 0) {break;}
+	}
+	if (timeout != 0) {
+		HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);
+	}
+
+}
 
 /* USER CODE END 1 */
 
