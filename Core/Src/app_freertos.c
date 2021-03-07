@@ -170,7 +170,7 @@ void threadPID_Loop(void *argument)
 {
   /* USER CODE BEGIN threadPID_Loop */
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 1000;	// TEMPORARY, set to 10ms after no UART interaction is needed
+	const TickType_t xFrequency = 100;	// TEMPORARY, set to 10ms after no UART interaction is needed
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
@@ -205,29 +205,43 @@ void threadPID_Loop(void *argument)
 		updateHallSensorValues(hallSensorValues);
 
 		// print number through uart
-		char str[130] = "";
-		for (uint8_t i=0; i<20; ++i) {
+		//char str[140] = "";
+		/*for (uint8_t i=0; i<20; ++i) {
 			char number[8] = "";
-			sprintf(number, "%4.4d", hallSensorValues[i]);
+			sprintf(number, "%5.4d", hallSensorValues[i]);
 			strncat(str, number, 6);
 			if (i < 19) {
 				strncat(str, ",", 2);
 			} else {
 				strncat(str, "\n\r", 5);
 			}
-		}
+		}*/
+		//sprintf(str, "%d %d %d %d %d %d %d %d\r\n", hallSensorValues[0], hallSensorValues[1], hallSensorValues[2], hallSensorValues[3], hallSensorValues[4], hallSensorValues[5], hallSensorValues[6], hallSensorValues[7]);
+
 
 
 		//uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 		// transmit telemetry data via CAN
-		//uint8_t data[2];
-		//data[0] = (uint8_t) (hallSensorValues[0] >> 8);
-		//data[1] = (uint8_t) (hallSensorValues[0] >> 0);
-		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) hallSensorValues);
-		//CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 2, data);
+		/*uint8_t data[8];
+		data[0] = (uint8_t) (hallSensorValues[0] >> 8);
+		data[1] = (uint8_t) (hallSensorValues[0] >> 0);
+		data[2] = (uint8_t) (hallSensorValues[1] >> 8);
+		data[3] = (uint8_t) (hallSensorValues[1] >> 0);
+		data[4] = (uint8_t) (hallSensorValues[2] >> 8);
+		data[5] = (uint8_t) (hallSensorValues[2] >> 0);
+		data[6] = (uint8_t) (hallSensorValues[3] >> 8);
+		data[7] = (uint8_t) (hallSensorValues[3] >> 0);
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
+		*/
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[4]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, (uint8_t*) &hallSensorValues[8]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_4_MSG_ID, 8, (uint8_t*) &hallSensorValues[12]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, (uint8_t*) &hallSensorValues[16]);
+
 
 		// temporary, control motor from keys
-		char input = 'w';
+		/*char input = 'w';
 		HAL_UART_Receive(&huart1, (uint8_t*) &input, 1, 0);
 		if (input == 'a') {
 			motorSet(-150);
@@ -241,11 +255,11 @@ void threadPID_Loop(void *argument)
 
 		} else {
 			motorSet(0);
-		}
+		}*/
 
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 1);
-		xSemaphoreGive(uartMutexHandle);
+		/*xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 10);
+		xSemaphoreGive(uartMutexHandle);*/
 
 
 

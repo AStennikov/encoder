@@ -36,15 +36,15 @@ extern FDCAN_HandleTypeDef hfdcan1;
 /* USER CODE BEGIN Private defines */
 
 // CAN message IDs. Check CAN protocol description document for detailed information
-#define CAN_CONTROL_MSG_ID				0x500	// same for all nodes
-#define CAN_CALIBRATION_MESSAGE_ID		0x501	// 0x501, 0x502 or 0x503 depending on which node
+#define CAN_CONTROL_MSG_ID				(uint32_t) 0x500	// same for all nodes
+#define CAN_CALIBRATION_MESSAGE_ID		(uint32_t) 0x501	// 0x501, 0x502 or 0x503 depending on which node
 
-#define CAN_STATUS_MESSAGE_ID			0x510	// 0x510, 0x520 or 0x530
-#define CAN_SENSOR_GROUP_1_MSG_ID		0x511	// 0x511, 0x521 or 0x531
-#define CAN_SENSOR_GROUP_2_MSG_ID		0x512	// 0x512, 0x522 or 0x532
-#define CAN_SENSOR_GROUP_3_MSG_ID		0x513	// 0x513, 0x523 or 0x533
-#define CAN_SENSOR_GROUP_4_MSG_ID		0x514	// 0x514, 0x524 or 0x534
-#define CAN_SENSOR_GROUP_5_MSG_ID		0x515	// 0x515, 0x525 or 0x535
+#define CAN_STATUS_MESSAGE_ID			(uint32_t) 0x510	// 0x510, 0x520 or 0x530
+#define CAN_SENSOR_GROUP_1_MSG_ID		(uint32_t) 0x511	// 0x511, 0x521 or 0x531
+#define CAN_SENSOR_GROUP_2_MSG_ID		(uint32_t) 0x512	// 0x512, 0x522 or 0x532
+#define CAN_SENSOR_GROUP_3_MSG_ID		(uint32_t) 0x513	// 0x513, 0x523 or 0x533
+#define CAN_SENSOR_GROUP_4_MSG_ID		(uint32_t) 0x514	// 0x514, 0x524 or 0x534
+#define CAN_SENSOR_GROUP_5_MSG_ID		(uint32_t) 0x515	// 0x515, 0x525 or 0x535
 
 
 /* USER CODE END Private defines */

@@ -34,7 +34,7 @@ void MX_FDCAN1_Init(void)
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
   hfdcan1.Init.NominalPrescaler = 1;
@@ -119,6 +119,10 @@ void CAN_SendSimple(uint32_t ID, uint32_t DLC, uint8_t *data)
 	txh.TxFrameType = FDCAN_DATA_FRAME;
 	txh.DataLength = DLC << 16;	// shift is needed because then it matches FDCAN_data_length_code, which sets register value directly
 	txh.FDFormat = FDCAN_CLASSIC_CAN;
+	txh.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+	txh.BitRateSwitch = FDCAN_BRS_OFF;
+	txh.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+	txh.MessageMarker = 0;
 
 	uint32_t timeout = 1000000;
 	while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {	// wait while CAN TX FIFO has no empty slots
@@ -128,6 +132,7 @@ void CAN_SendSimple(uint32_t ID, uint32_t DLC, uint8_t *data)
 	if (timeout != 0) {
 		HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);
 	}
+	//HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);
 
 }
 
