@@ -100,7 +100,9 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  // test transmit a CAN message
+  // start CAN bus
+  CAN_SetupFilters();
+  CAN_SetupInterrupts();
   HAL_FDCAN_Start(&hfdcan1);
 
   /* USER CODE END 2 */

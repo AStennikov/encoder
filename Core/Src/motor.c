@@ -9,6 +9,11 @@
 #include "stm32g4xx_hal_conf.h"
 #include "tim.h"
 
+
+// global variables
+uint16_t motorTargetUpdated = 0;	// is set to 1 when motor target is updated
+uint16_t motorTarget = 0;			// shows where rotary joint must be. Matches array index.
+
 // turns motor on, starts PWM
 void motorEnable(){
 	// set PMODE
@@ -27,7 +32,7 @@ void motorEnable(){
 }
 
 // sets PWM to the provided value. Sign sets direction, (+) being forward. Range: -255 to 255
-void motorSet(int32_t pwmValue) {
+void motorSetPWM(int32_t pwmValue) {
 	// clamp values within range
 	if(pwmValue < -255) {pwmValue = -255;}
 	if(pwmValue > 255) {pwmValue = 255;}
@@ -43,5 +48,13 @@ void motorSet(int32_t pwmValue) {
 
 }
 
+// sets target where rotary joint must be
+void motorSetTarget(uint16_t *newTargetValue) {
+	motorTargetUpdated = 1;
+	motorTarget = *newTargetValue;
+}
 
+uint16_t motorGetTarget() {
+	return motorTarget;
+}
 

@@ -174,10 +174,11 @@ void threadPID_Loop(void *argument)
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
-	int16_t hallSensorValues[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int16_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
 
 	motorEnable();
-	motorSet(0);
+	motorSetPWM(0);
 
 
 	/*// CAN message for transmission
@@ -202,7 +203,14 @@ void threadPID_Loop(void *argument)
 		// 		calculate PID parameters
 		// 		set PWM
 		// 		wait until next cycle
-		updateHallSensorValues(hallSensorValues);
+
+
+		//updateHallSensorValues(hallSensorValues);
+
+		getSensorValues(hallSensorValues);
+		offsetSensorValues(hallSensorValues);
+		interpolateSensorValues(hallSensorValues, interpolatedHallSensorValues);
+		uint16_t currentPosition = calculateSensorPosition(interpolatedHallSensorValues);
 
 		// print number through uart
 		//char str[140] = "";
@@ -233,6 +241,12 @@ void threadPID_Loop(void *argument)
 		data[7] = (uint8_t) (hallSensorValues[3] >> 0);
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
 		*/
+
+		uint8_t data[8];
+		data[0] = (uint8_t) (motorGetTarget()>>8);
+		data[1] = (uint8_t) motorGetTarget()>>0;
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 2, data);
+
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[4]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, (uint8_t*) &hallSensorValues[8]);

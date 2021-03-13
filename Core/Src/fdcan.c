@@ -79,6 +79,9 @@ void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
     GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    /* FDCAN1 interrupt Init */
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
   /* USER CODE BEGIN FDCAN1_MspInit 1 */
 
   /* USER CODE END FDCAN1_MspInit 1 */
@@ -102,6 +105,8 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
 
+    /* FDCAN1 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(FDCAN1_IT0_IRQn);
   /* USER CODE BEGIN FDCAN1_MspDeInit 1 */
 
   /* USER CODE END FDCAN1_MspDeInit 1 */
@@ -135,6 +140,35 @@ void CAN_SendSimple(uint32_t ID, uint32_t DLC, uint8_t *data)
 	//HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);
 
 }
+
+void CAN_SetupFilters(){
+	FDCAN_FilterTypeDef filter;
+	filter.IdType = FDCAN_STANDARD_ID;
+	filter.FilterIndex = 0;
+	filter.FilterType = FDCAN_FILTER_MASK;
+	filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+	filter.FilterID1 = CAN_CONTROL_MSG_ID;
+	filter.FilterID2 = 0x7ff;
+
+	HAL_FDCAN_ConfigFilter(&hfdcan1, &filter);
+
+	filter.FilterIndex = 1;
+	filter.FilterID1 = CAN_CALIBRATION_MESSAGE_ID;
+	filter.FilterID2 = 0x7ff;
+
+	HAL_FDCAN_ConfigFilter(&hfdcan1, &filter);
+}
+
+
+// sets up RX FIFO0 interrupt
+void CAN_SetupInterrupts(){
+	// configures RX FIFO0 interrupt group to interrupt line 0
+	HAL_FDCAN_ConfigInterruptLines(&hfdcan1, FDCAN_IT_LIST_RX_FIFO0, FDCAN_INTERRUPT_LINE0);
+
+	// activates RX FIFO0 interrupt group
+	HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_GROUP_RX_FIFO0, FDCAN_TX_BUFFER0);
+}
+
 
 /* USER CODE END 1 */
 

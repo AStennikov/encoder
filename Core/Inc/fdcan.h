@@ -37,14 +37,22 @@ extern FDCAN_HandleTypeDef hfdcan1;
 
 // CAN message IDs. Check CAN protocol description document for detailed information
 #define CAN_CONTROL_MSG_ID				(uint32_t) 0x500	// same for all nodes
-#define CAN_CALIBRATION_MESSAGE_ID		(uint32_t) 0x501	// 0x501, 0x502 or 0x503 depending on which node
+#define JOINT_NUMBER					(uint32_t) 0x01		// this joint number. 1, 2 or 3.
 
-#define CAN_STATUS_MESSAGE_ID			(uint32_t) 0x510	// 0x510, 0x520 or 0x530
+#define CAN_CALIBRATION_MESSAGE_ID		CAN_CONTROL_MSG_ID + JOINT_NUMBER				// 0x501, 0x502 or 0x503 depending on which node
+#define CAN_STATUS_MESSAGE_ID			CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 0		// 0x510, 0x520 or 0x530
+#define CAN_SENSOR_GROUP_1_MSG_ID		CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 1	// 0x511, 0x521 or 0x531
+#define CAN_SENSOR_GROUP_2_MSG_ID		CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 2	// 0x512, 0x522 or 0x532
+#define CAN_SENSOR_GROUP_3_MSG_ID		CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 3	// 0x513, 0x523 or 0x533
+#define CAN_SENSOR_GROUP_4_MSG_ID		CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 4	// 0x514, 0x524 or 0x534
+#define CAN_SENSOR_GROUP_5_MSG_ID		CAN_CONTROL_MSG_ID + (JOINT_NUMBER<<4) + 5	// 0x515, 0x525 or 0x535
+
+/*#define CAN_STATUS_MESSAGE_ID			(uint32_t) 0x510	// 0x510, 0x520 or 0x530
 #define CAN_SENSOR_GROUP_1_MSG_ID		(uint32_t) 0x511	// 0x511, 0x521 or 0x531
 #define CAN_SENSOR_GROUP_2_MSG_ID		(uint32_t) 0x512	// 0x512, 0x522 or 0x532
 #define CAN_SENSOR_GROUP_3_MSG_ID		(uint32_t) 0x513	// 0x513, 0x523 or 0x533
 #define CAN_SENSOR_GROUP_4_MSG_ID		(uint32_t) 0x514	// 0x514, 0x524 or 0x534
-#define CAN_SENSOR_GROUP_5_MSG_ID		(uint32_t) 0x515	// 0x515, 0x525 or 0x535
+#define CAN_SENSOR_GROUP_5_MSG_ID		(uint32_t) 0x515	// 0x515, 0x525 or 0x535*/
 
 
 /* USER CODE END Private defines */
@@ -54,6 +62,8 @@ void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 void CAN_SendSimple(uint32_t ID, uint32_t DLC, uint8_t *data);
+void CAN_SetupFilters();
+void CAN_SetupInterrupts();
 
 /* USER CODE END Prototypes */
 
