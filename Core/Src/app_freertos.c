@@ -244,8 +244,10 @@ void threadPID_Loop(void *argument)
 
 		uint8_t data[8];
 		data[0] = (uint8_t) (motorGetTarget()>>8);
-		data[1] = (uint8_t) motorGetTarget()>>0;
-		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 2, data);
+		data[1] = (uint8_t) (motorGetTarget()>>0);
+		data[2] = (uint8_t) (currentPosition>>8);
+		data[3] = (uint8_t) (currentPosition>>0);
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 4, data);
 
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[4]);

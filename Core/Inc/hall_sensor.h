@@ -13,6 +13,7 @@
 
 #define SENSOR_COUNT 						20
 #define INTERPOLATED_SENSOR_ARRAY_LENGTH 	SENSOR_COUNT*4-3
+#define MAGNETIC_PATTERN_LENGTH				576
 
 // reads hall sensor values
 void getSensorValues(int16_t* values);
