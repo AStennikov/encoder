@@ -12,7 +12,7 @@
 
 // global variables
 uint16_t motorTargetUpdated = 0;	// is set to 1 when motor target is updated
-uint16_t motorTarget = 0;			// shows where rotary joint must be. Matches array index.
+uint16_t motorTarget = 0x100;			// shows where rotary joint must be. Matches array index.
 
 // turns motor on, starts PWM
 void motorEnable(){

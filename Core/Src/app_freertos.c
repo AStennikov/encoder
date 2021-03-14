@@ -175,7 +175,7 @@ void threadPID_Loop(void *argument)
 	xLastWakeTime = xTaskGetTickCount();
 
 	int16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int16_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
+	int32_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
 
 	motorEnable();
 	motorSetPWM(0);
@@ -192,6 +192,26 @@ void threadPID_Loop(void *argument)
 	HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);*/
 
 
+	double kp = 35;
+	double ki = 0.07;
+	double kd = 0;
+	double kpe = 0;
+	double kpi = 0;
+	double kpd = 0;
+	double error = 0;
+	double error_i = 0;
+	double error_d = 0;
+	double last_error = 0;
+	double pwm_d = 0;
+	int16_t pwm_16 = 0;
+	int16_t motor_direction = -1;
+
+	TickType_t previous_time = xTaskGetTickCount();
+	TickType_t current_time = xTaskGetTickCount();
+	TickType_t elapsedTime = current_time - previous_time;
+
+
+
 	/* Infinite loop */
 	for(;;)
 	{
@@ -204,17 +224,58 @@ void threadPID_Loop(void *argument)
 		// 		set PWM
 		// 		wait until next cycle
 
-
-		//updateHallSensorValues(hallSensorValues);
-
 		getSensorValues(hallSensorValues);
 		offsetSensorValues(hallSensorValues);
 		interpolateSensorValues(hallSensorValues, interpolatedHallSensorValues);
 		uint16_t currentPosition = calculateSensorPosition(interpolatedHallSensorValues);
 
-		// print number through uart
+		// pid loop
+		current_time = xTaskGetTickCount();
+		elapsedTime = current_time - previous_time;
+
+		error = (double) (motorGetTarget() - currentPosition);
+		error_i += (double) error*elapsedTime;
+		//if (error < 4 && error > -4) {error_i = 0;}
+		error_i = error_i*0.9;	// slow decay of integral component, needed to stop power to motor after it has reached its target
+		if (elapsedTime != 0) {error_d = (error - last_error)/elapsedTime;}
+
+		kpe = kp*error;
+		// trimming error_i so that it does not go too far
+		if (error_i > 255/ki) {error_i = 255/ki;}
+		if (error_i < -255/ki) {error_i = -255/ki;}
+		// zeroing error_i when error crosses zero
+		if (error > 0 && error_i < 0) {error_i = 0;}
+		if (error < 0 && error_i > 0) {error_i = 0;}
+		kpi = ki*error_i;
+		//if (kpi > 255) {kpi = 255;}
+		//if (kpi < -255) {kpi = -255;}
+		kpd = kd*error_d;
+		pwm_d = kpe + kpi + kpd;
+		// trimming
+		if (pwm_d > 255) {pwm_d = 255;}
+		if (pwm_d < -255) {pwm_d = -255;}
+		pwm_16 = (int16_t) pwm_d;
+
+
+		last_error = error;
+		previous_time = current_time;
+
+		motorSetPWM(motor_direction*pwm_16);
+
+
+
+
+		/*if (currentPosition < motorGetTarget()-50) {
+			motorSetPWM(-255);
+		} else if (currentPosition > motorGetTarget()+50) {
+			motorSetPWM(255);
+		} else {
+			motorSetPWM(0);
+		}*/
+
+		/*// print number through uart
 		//char str[140] = "";
-		/*for (uint8_t i=0; i<20; ++i) {
+		for (uint8_t i=0; i<20; ++i) {
 			char number[8] = "";
 			sprintf(number, "%5.4d", hallSensorValues[i]);
 			strncat(str, number, 6);
@@ -243,11 +304,16 @@ void threadPID_Loop(void *argument)
 		*/
 
 		uint8_t data[8];
-		data[0] = (uint8_t) (motorGetTarget()>>8);
-		data[1] = (uint8_t) (motorGetTarget()>>0);
-		data[2] = (uint8_t) (currentPosition>>8);
-		data[3] = (uint8_t) (currentPosition>>0);
-		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 4, data);
+		int16_t kpi_16 = (int16_t) kpi;
+		data[0] = (uint8_t) (motorGetTarget()>>0);
+		data[1] = (uint8_t) (motorGetTarget()>>8);
+		data[2] = (uint8_t) (currentPosition>>0);
+		data[3] = (uint8_t) (currentPosition>>8);
+		data[4] = (uint8_t) (pwm_16>>0);
+		data[5] = (uint8_t) (pwm_16>>8);
+		data[6] = (uint8_t) (kpi_16>>0);
+		data[7] = (uint8_t) (kpi_16>>8);
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
 
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[4]);
@@ -275,55 +341,6 @@ void threadPID_Loop(void *argument)
 
 		/*xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
 		HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), 10);
-		xSemaphoreGive(uartMutexHandle);*/
-
-
-
-		//uint8_t str[102];
-		//sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[0], hallSensorValues[1], hallSensorValues[2], hallSensorValues[3]);
-		/*sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d %4.4d\n\r",
-				hallSensorValues[0],
-				hallSensorValues[1],
-				hallSensorValues[2],
-				hallSensorValues[3],
-				hallSensorValues[4],
-				hallSensorValues[5],
-				hallSensorValues[6],
-				hallSensorValues[7],
-				hallSensorValues[8],
-				hallSensorValues[9],
-				hallSensorValues[10],
-				hallSensorValues[11],
-				hallSensorValues[12],
-				hallSensorValues[13],
-				hallSensorValues[14],
-				hallSensorValues[15],
-				hallSensorValues[16],
-				hallSensorValues[17],
-				hallSensorValues[18],
-				hallSensorValues[19]);*/
-		/*xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		//HAL_UART_Transmit(&huart1, str, 101, 100);
-		HAL_UART_Transmit(&huart1, str, 21, 100);
-		xSemaphoreGive(uartMutexHandle);
-		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[4], hallSensorValues[5], hallSensorValues[6], hallSensorValues[7]);
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, str, 21, 100);
-		xSemaphoreGive(uartMutexHandle);
-		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[8], hallSensorValues[9], hallSensorValues[10], hallSensorValues[11]);
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, str, 21, 100);
-		xSemaphoreGive(uartMutexHandle);
-		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[12], hallSensorValues[13], hallSensorValues[14], hallSensorValues[15]);
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, str, 21, 100);
-		xSemaphoreGive(uartMutexHandle);
-		sprintf((char*) str, "%4.4d %4.4d %4.4d %4.4d\n\r", hallSensorValues[16], hallSensorValues[17], hallSensorValues[18], hallSensorValues[19]);
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, str, 21, 100);
-		xSemaphoreGive(uartMutexHandle);
-		xSemaphoreTake(uartMutexHandle, portMAX_DELAY);
-		HAL_UART_Transmit(&huart1, (uint8_t*) "--------\n\r", 10, 100);
 		xSemaphoreGive(uartMutexHandle);*/
 
 

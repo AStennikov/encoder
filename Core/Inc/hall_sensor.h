@@ -22,10 +22,10 @@ void getSensorValues(int16_t* values);
 void offsetSensorValues(int16_t* values);
 
 // interpolates sensor values
-void interpolateSensorValues(int16_t* originalValues, int16_t* interpolatedValues);
+void interpolateSensorValues(int16_t* originalValues, int32_t* interpolatedValues);
 
 // finds sensor position
-uint16_t calculateSensorPosition(int16_t* interpolatedValues);
+uint16_t calculateSensorPosition(int32_t* interpolatedValues);
 
 //void updateHallSensorValues(int16_t* values);
 
