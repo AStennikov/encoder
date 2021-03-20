@@ -215,7 +215,7 @@ void threadPID_Loop(void *argument)
 	/* Infinite loop */
 	for(;;)
 	{
-		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 
 		// rough pseudocode:
 		// 		get hall sensor readings
@@ -224,10 +224,19 @@ void threadPID_Loop(void *argument)
 		// 		set PWM
 		// 		wait until next cycle
 
+		// 1ms with 1000 delay, 200us with 100 delay
 		getSensorValues(hallSensorValues);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+
+		// < 1ms
 		offsetSensorValues(hallSensorValues);
+
+		// < 1ms
 		interpolateSensorValues(hallSensorValues, interpolatedHallSensorValues);
+
+		// 18ms
 		uint16_t currentPosition = calculateSensorPosition(interpolatedHallSensorValues);
+
 
 		// pid loop
 		current_time = xTaskGetTickCount();
@@ -261,6 +270,7 @@ void threadPID_Loop(void *argument)
 		previous_time = current_time;
 
 		motorSetPWM(motor_direction*pwm_16);
+
 
 
 
@@ -344,7 +354,7 @@ void threadPID_Loop(void *argument)
 		xSemaphoreGive(uartMutexHandle);*/
 
 
-		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+		//HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}

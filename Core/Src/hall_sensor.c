@@ -10,6 +10,10 @@
 #include "stm32g4xx_hal_conf.h"
 #include "adc.h"
 
+// A139x sensors have a sleep mode with power-on time of 60us max and power off-time of 1us. These constants allow fine tuning delays between GPIO action
+#define T_PON	1000
+#define T_POFF	50
+
 // sensors are not located in a nice incremental order, so the readings are rearranged with the help of a look-up table
 const uint32_t sensorOrderLUT[SENSOR_COUNT] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
 
@@ -29,7 +33,7 @@ void removeOffsets(int16_t* values) {
 }
 
 // activates a certain sensor group
-void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint32_t delay){
+void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 	// sets all pins low
 	HAL_GPIO_WritePin(GROUP1_GPIO_Port, GROUP1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(GROUP2_GPIO_Port, GROUP2_Pin, GPIO_PIN_RESET);
@@ -37,41 +41,41 @@ void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, uint32_t delay)
 	HAL_GPIO_WritePin(GROUP4_GPIO_Port, GROUP4_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(GROUP5_GPIO_Port, GROUP5_Pin, GPIO_PIN_RESET);
 
-	// short delay
-	for (volatile uint32_t i=0; i<delay; ++i){}
+	// power-off delay
+	for (volatile uint32_t i=0; i<T_POFF; ++i){}
 
 	// sets one specific group high
 	HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_SET);
 
-	// short delay
-	for (volatile uint32_t i=0; i<delay; ++i){}
+	// power-on delay
+	for (volatile uint32_t i=0; i<T_PON; ++i){}
 }
 
 // reads hall sensor values
 void getSensorValues(int16_t* values){
 	int16_t buffer[SENSOR_COUNT];
 
-	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin, 1000);	// enable group 1
+	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin);	// enable group 1
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
-	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin, 1000);	// enable group 2
+	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin);	// enable group 2
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[4]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
-	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin, 1000);	// enable group 3
+	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin);	// enable group 3
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[8]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
-	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin, 1000);	// enable group 4
+	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin);	// enable group 4
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[12]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
-	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin, 1000);	// enable group 5
+	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin);	// enable group 5
 	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[16]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
