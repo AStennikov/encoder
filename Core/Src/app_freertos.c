@@ -170,12 +170,12 @@ void threadPID_Loop(void *argument)
 {
   /* USER CODE BEGIN threadPID_Loop */
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 100;	// TEMPORARY, set to 10ms after no UART interaction is needed
+	const TickType_t xFrequency = 10;	// TEMPORARY, set to 10ms after no UART interaction is needed
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 
-	int16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int32_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
+	//int16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	//int32_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
 
 	motorEnable();
 	motorSetPWM(0);
@@ -192,7 +192,7 @@ void threadPID_Loop(void *argument)
 	HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txh, data);*/
 
 
-	double kp = 35;
+	/*double kp = 35;
 	double ki = 0.07;
 	double kd = 0;
 	double kpe = 0;
@@ -208,7 +208,7 @@ void threadPID_Loop(void *argument)
 
 	TickType_t previous_time = xTaskGetTickCount();
 	TickType_t current_time = xTaskGetTickCount();
-	TickType_t elapsedTime = current_time - previous_time;
+	TickType_t elapsedTime = current_time - previous_time;*/
 
 
 
@@ -224,7 +224,14 @@ void threadPID_Loop(void *argument)
 		// 		set PWM
 		// 		wait until next cycle
 
-		// 1ms with 1000 delay, 200us with 100 delay
+
+		updateSensorValues();
+
+		uint16_t currentPosition = calculateSensorPosition(0, 512);
+
+
+		/*
+		// 0.5ms
 		getSensorValues(hallSensorValues);
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
@@ -269,7 +276,7 @@ void threadPID_Loop(void *argument)
 		last_error = error;
 		previous_time = current_time;
 
-		motorSetPWM(motor_direction*pwm_16);
+		motorSetPWM(motor_direction*pwm_16);*/
 
 
 
@@ -314,6 +321,79 @@ void threadPID_Loop(void *argument)
 		*/
 
 		uint8_t data[8];
+		//int16_t kpi_16 = (int16_t) kpi;
+		data[0] = 0;
+		data[1] = 0;
+		//data[0] = (uint8_t) (motorGetTarget()>>0);
+		//data[1] = (uint8_t) (motorGetTarget()>>8);
+		data[2] = (uint8_t) (currentPosition>>0);
+		data[3] = (uint8_t) (currentPosition>>8);
+		data[4] = 0;
+		data[5] = 0;
+		data[6] = 0;
+		data[7] = 0;
+		//data[4] = (uint8_t) (pwm_16>>0);
+		//data[5] = (uint8_t) (pwm_16>>8);
+		//data[6] = (uint8_t) (kpi_16>>0);
+		//data[7] = (uint8_t) (kpi_16>>8);
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
+
+		// transmit sensor values via CAN
+		uint16_t sensorDataForTransmission[20];
+		sensorValues(sensorDataForTransmission);
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[0]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[4]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[8]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_4_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[12]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[16]);
+
+		/*data[0] = (uint8_t) (sensorValue(0) >> 0);
+		data[1] = (uint8_t) (sensorValue(0) >> 8);
+		data[2] = (uint8_t) (sensorValue(1) >> 0);
+		data[3] = (uint8_t) (sensorValue(1) >> 8);
+		data[4] = (uint8_t) (sensorValue(2) >> 0);
+		data[5] = (uint8_t) (sensorValue(2) >> 8);
+		data[6] = (uint8_t) (sensorValue(3) >> 0);
+		data[7] = (uint8_t) (sensorValue(3) >> 8);
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
+		data[0] = (uint8_t) (sensorValue(4) >> 0);
+		data[1] = (uint8_t) (sensorValue(4) >> 8);
+		data[2] = (uint8_t) (sensorValue(5) >> 0);
+		data[3] = (uint8_t) (sensorValue(5) >> 8);
+		data[4] = (uint8_t) (sensorValue(6) >> 0);
+		data[5] = (uint8_t) (sensorValue(6) >> 8);
+		data[6] = (uint8_t) (sensorValue(7) >> 0);
+		data[7] = (uint8_t) (sensorValue(7) >> 8);
+		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, data);
+		data[0] = (uint8_t) (sensorValue(8) >> 0);
+		data[1] = (uint8_t) (sensorValue(8) >> 8);
+		data[2] = (uint8_t) (sensorValue(9) >> 0);
+		data[3] = (uint8_t) (sensorValue(9) >> 8);
+		data[4] = (uint8_t) (sensorValue(10) >> 0);
+		data[5] = (uint8_t) (sensorValue(10) >> 8);
+		data[6] = (uint8_t) (sensorValue(11) >> 0);
+		data[7] = (uint8_t) (sensorValue(11) >> 8);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, data);
+		data[0] = (uint8_t) (sensorValue(12) >> 0);
+		data[1] = (uint8_t) (sensorValue(12) >> 8);
+		data[2] = (uint8_t) (sensorValue(13) >> 0);
+		data[3] = (uint8_t) (sensorValue(13) >> 8);
+		data[4] = (uint8_t) (sensorValue(14) >> 0);
+		data[5] = (uint8_t) (sensorValue(14) >> 8);
+		data[6] = (uint8_t) (sensorValue(15) >> 0);
+		data[7] = (uint8_t) (sensorValue(15) >> 8);
+		CAN_SendSimple(CAN_SENSOR_GROUP_4_MSG_ID, 8, data);
+		data[0] = (uint8_t) (sensorValue(16) >> 0);
+		data[1] = (uint8_t) (sensorValue(16) >> 8);
+		data[2] = (uint8_t) (sensorValue(17) >> 0);
+		data[3] = (uint8_t) (sensorValue(17) >> 8);
+		data[4] = (uint8_t) (sensorValue(18) >> 0);
+		data[5] = (uint8_t) (sensorValue(18) >> 8);
+		data[6] = (uint8_t) (sensorValue(19) >> 0);
+		data[7] = (uint8_t) (sensorValue(19) >> 8);
+		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, data);*/
+
+		/*uint8_t data[8];
 		int16_t kpi_16 = (int16_t) kpi;
 		data[0] = (uint8_t) (motorGetTarget()>>0);
 		data[1] = (uint8_t) (motorGetTarget()>>8);
@@ -329,7 +409,7 @@ void threadPID_Loop(void *argument)
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[4]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, (uint8_t*) &hallSensorValues[8]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_4_MSG_ID, 8, (uint8_t*) &hallSensorValues[12]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, (uint8_t*) &hallSensorValues[16]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, (uint8_t*) &hallSensorValues[16]);*/
 
 
 		// temporary, control motor from keys
@@ -354,7 +434,7 @@ void threadPID_Loop(void *argument)
 		xSemaphoreGive(uartMutexHandle);*/
 
 
-		//HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}
