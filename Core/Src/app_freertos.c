@@ -177,9 +177,10 @@ void threadPID_Loop(void *argument)
 	//int16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	//int32_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
 
+	uint32_t hallSensorValues[5] = {0,0,0,0,0};
+
 	motorEnable();
 	motorSetPWM(0);
-
 
 	/*// CAN message for transmission
 	FDCAN_TxHeaderTypeDef txh;
@@ -224,14 +225,25 @@ void threadPID_Loop(void *argument)
 		// 		set PWM
 		// 		wait until next cycle
 
+		// 	optimization log:
+		// 		initial solution with interpolated wavelets: 20ms
+		//		replaced interpolation with 512-position look up tables, power-of-2 arrays and so on: 5ms
+		//		enabled speed optimization in c compiler settings: 1.5ms
+		// 		changed pipeline from 12 to 8 bit, 256-position, DSP instructions __USADA8 and __REV, unrolled small loop: 600us
+		//
 
-		updateSensorValues();
 
-		uint16_t currentPosition = calculateSensorPosition(0, 512);
+		updateSensorValues(hallSensorValues);
+		uint16_t currentPosition = calculateSensorPosition(hallSensorValues, 0, 256);
+
+		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+
+		//uint32_t result = __USADA8(0x01010000, 0x00000101, 0x00000006);
 
 
-		/*
-		// 0.5ms
+
+
+		/*// 0.5ms
 		getSensorValues(hallSensorValues);
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
@@ -320,8 +332,19 @@ void threadPID_Loop(void *argument)
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
 		*/
 
-		uint8_t data[8];
-		//int16_t kpi_16 = (int16_t) kpi;
+		/*uint8_t data[8];
+		data[0] = (uint8_t) (currentPosition>>0);
+		data[1] = (uint8_t) (currentPosition>>8);
+		data[2] = 0;
+		data[3] = 0;
+		data[4] = 0;
+		data[5] = 0;
+		data[6] = 0;
+		data[7] = 0;*/
+
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 2, (uint8_t*) &currentPosition);
+
+		/*//int16_t kpi_16 = (int16_t) kpi;
 		data[0] = 0;
 		data[1] = 0;
 		//data[0] = (uint8_t) (motorGetTarget()>>0);
@@ -335,17 +358,31 @@ void threadPID_Loop(void *argument)
 		//data[4] = (uint8_t) (pwm_16>>0);
 		//data[5] = (uint8_t) (pwm_16>>8);
 		//data[6] = (uint8_t) (kpi_16>>0);
-		//data[7] = (uint8_t) (kpi_16>>8);
-		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
+		//data[7] = (uint8_t) (kpi_16>>8);*/
+		//CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
 
+		//while(1) {}
+
+		// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 		// transmit sensor values via CAN
-		uint16_t sensorDataForTransmission[20];
-		sensorValues(sensorDataForTransmission);
-		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[0]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[4]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[8]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_4_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[12]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_5_MSG_ID, 8, (uint8_t*) &sensorDataForTransmission[16]);
+		/*uint8_t data[8];
+		data[0] = (uint8_t) (hallSensorValues[0] >> 0);
+		data[1] = (uint8_t) (hallSensorValues[0] >> 8);
+		data[2] = (uint8_t) (hallSensorValues[0] >> 16);
+		data[3] = (uint8_t) (hallSensorValues[0] >> 26);
+		data[4] = (uint8_t) (hallSensorValues[1] >> 0);
+		data[5] = (uint8_t) (hallSensorValues[1] >> 8);
+		data[6] = (uint8_t) (hallSensorValues[1] >> 16);
+		data[7] = (uint8_t) (hallSensorValues[1] >> 24);
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
+
+		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, data);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 4, data);*/
+
+		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[2]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 4, (uint8_t*) &hallSensorValues[4]);
+
 
 		/*data[0] = (uint8_t) (sensorValue(0) >> 0);
 		data[1] = (uint8_t) (sensorValue(0) >> 8);
@@ -434,7 +471,7 @@ void threadPID_Loop(void *argument)
 		xSemaphoreGive(uartMutexHandle);*/
 
 
-		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+		//HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);	// Wait for the next cycle.
 	}

@@ -86,7 +86,7 @@ void MX_ADC2_Init(void)
   */
   hadc2.Instance = ADC2;
   hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc2.Init.Resolution = ADC_RESOLUTION_8B;
   hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc2.Init.GainCompensation = 0;
   hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
@@ -210,7 +210,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     hdma_adc2.Init.PeriphInc = DMA_PINC_DISABLE;
     hdma_adc2.Init.MemInc = DMA_MINC_ENABLE;
     hdma_adc2.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    hdma_adc2.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    hdma_adc2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     hdma_adc2.Init.Mode = DMA_NORMAL;
     hdma_adc2.Init.Priority = DMA_PRIORITY_LOW;
     if (HAL_DMA_Init(&hdma_adc2) != HAL_OK)

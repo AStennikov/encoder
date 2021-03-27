@@ -15,14 +15,8 @@
 #define T_PON	1000
 #define T_POFF	50
 
-// sensors are not located in a nice incremental order, so the readings are rearranged with the help of a look-up table. This is not strictly necessary, but helps when visualizing the data
-const uint32_t sensorOrderLUT[SENSOR_COUNT] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
-
-// upon calling updateSensorValues(), sensor readings are stored here
-uint16_t hallSensorValues[SENSOR_COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
-// vector which stores calculated differences between sensor readings and sensorValueTable
-int32_t diff[POSITION_COUNT];
+// for each position, stores difference between sensorValueTable[POSITION_COUNT][5] and the latest sensor reading
+uint32_t diff[POSITION_COUNT];
 
 
 // activates a certain sensor group
@@ -48,77 +42,63 @@ void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
 
 
 // reads hall sensor values
-void updateSensorValues() {
-	uint16_t buffer[SENSOR_COUNT];
-
+void updateSensorValues(uint32_t* sensorValues) {
 	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin);	// enable group 1
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
+	HAL_ADC_Start_DMA(&hadc2, &(sensorValues[0]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin);	// enable group 2
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[4]), 4);
+	HAL_ADC_Start_DMA(&hadc2, &(sensorValues[1]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin);	// enable group 3
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[8]), 4);
+	HAL_ADC_Start_DMA(&hadc2, &(sensorValues[2]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin);	// enable group 4
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[12]), 4);
+	HAL_ADC_Start_DMA(&hadc2, &(sensorValues[3]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
 	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin);	// enable group 5
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[16]), 4);
+	HAL_ADC_Start_DMA(&hadc2, &(sensorValues[4]), 4);
 	HAL_ADC_PollForConversion(&hadc2, 5);
 	HAL_ADC_Stop_DMA(&hadc2);
 
-	// rearranging the values according to the look-up table. This is not really necessary, but helps with data visualization.
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-		hallSensorValues[i] = buffer[sensorOrderLUT[i]];
-	}
-}
-
-// returns sensor reading
-uint16_t sensorValue(uint32_t sensorNumber) {
-	return hallSensorValues[sensorNumber];
-}
-
-// writes sensor readings into an array
-void sensorValues(uint16_t * sensorValues) {
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-		sensorValues[i] = hallSensorValues[i];
-	}
+	// Changing sensor value order for sensor groups 2 and 4. The sensors in these groups have reverse order because of PCB layout.
+	sensorValues[1] = __REV(sensorValues[1]);
+	sensorValues[3] = __REV(sensorValues[3]);
 }
 
 // calculates and returns encoder position within provided range
 // offset: starting value in sensorValueTable
 // length: how many values in a row are evaluated
 // automatically loops if offset + length exceeds POSITION_COUNT
-uint16_t calculateSensorPosition(uint16_t offset, uint16_t length) {
-	int32_t minimum = 0x7FFFFFFF;
+uint16_t calculateSensorPosition(uint32_t* sensorValues, uint16_t offset, uint16_t length) {
+	uint32_t minimum = 0xFFFFFFFF;
 	uint16_t minimumPos = offset;
 
 	uint16_t positionMask = POSITION_COUNT-1;		// position mask for looping indexes when they overflow POSITION_COUNT
 
 	uint16_t position = offset & positionMask;		// index of a 20-sensor snapshot in sensorValueTable[][] currently processed
-	for (int32_t i=0; i<length; ++i) {
-		// setting previous value to 0
-		diff[position] = 0;
 
-		// calculating single snapshot difference
-		for (int32_t tau=0; tau<SENSOR_COUNT; ++tau) {
-			int32_t difference = (int32_t) sensorValueTable[position][tau] - hallSensorValues[tau];
-			diff[position] += difference*difference;
-		}
+
+	for (int32_t i=0; i<length; ++i) {
+		diff[position] = 0;
+		diff[position] = __USADA8(sensorValues[0], sensorValueTable[position][0], diff[position]);
+		diff[position] = __USADA8(sensorValues[1], sensorValueTable[position][1], diff[position]);
+		diff[position] = __USADA8(sensorValues[2], sensorValueTable[position][2], diff[position]);
+		diff[position] = __USADA8(sensorValues[3], sensorValueTable[position][3], diff[position]);
+		diff[position] = __USADA8(sensorValues[4], sensorValueTable[position][4], diff[position]);
+
 
 		// finding minimum
 		if (diff[position] < minimum) {
 			minimum = diff[position];
-			minimumPos = (uint16_t) position;
+			minimumPos = position;
 		}
 
 		// incrementing position with overflow control
@@ -128,174 +108,6 @@ uint16_t calculateSensorPosition(uint16_t offset, uint16_t length) {
 	return minimumPos;
 }
 
-/*
-// sensors are not located in a nice incremental order, so the readings are rearranged with the help of a look-up table
-const uint32_t sensorOrderLUT[SENSOR_COUNT] = {0,1,2,3,7,6,5,4,8,9,10,11,15,14,13,12,16,17,18,19};
-
-// sensors' offset voltages, obtained with sensorArrayOffset.py
-const int16_t sensorOffsets[SENSOR_COUNT] = {1955, 1945, 1934, 1946, 1945, 1938, 1923, 1914, 1958, 1925, 1958, 1921,
-		 1954, 1938, 1956, 1961, 1916, 1958, 1935, 1975};
-
-// magnetic pattern, generated by wavelet.py
-const int32_t magneticPattern[MAGNETIC_PATTERN_LENGTH] = {-2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 100, 75, 100, 75, 100, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 75, 50, 50, 25, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 25, 50, 50, 75, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 100, 75, 100, 75, 100, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 50, 25, 0, -25, -50, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -50, -25, 0, 25, 50, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 75, 50, 50, 25, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 25, 50, 50, 75, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 75, 50, 50, 25, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -25, -25, -50, -50, -75, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -50, -25, 0, 25, 50, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 50, 25, 0, -25, -50, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -75, -50, -50, -25, -25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 25, 50, 50, 75, 75, 75, 50, 25, 0, -270, -550, -900, -1500, -2200, -1500, -900, -550, -270, 0, 25, 50, 75, 75, 50, 25, 0, -25, -50, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -100, -75, -100, -75, -100, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -75, -50, -50, -25, -25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -25, -25, -50, -50, -75, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -75, -50, -50, -25, -25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -25, -25, -50, -50, -75, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -100, -75, -100, -75, -100, -75, -75, -50, -25, 0, 270, 550, 900, 1500, 2200, 1500, 900, 550, 270, 0, -25, -50, -75, -75, -50, -25, 0, 25, 50, 75, 75, 50, 25, 0, -270, -550, -900, -1500};
-
-
-
-void removeOffsets(int16_t* values) {
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-			values[i]-= sensorOffsets[i];
-	}
-}
-
-// activates a certain sensor group
-void activateSensorGroup(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin){
-	// sets all pins low
-	HAL_GPIO_WritePin(GROUP1_GPIO_Port, GROUP1_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GROUP2_GPIO_Port, GROUP2_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GROUP3_GPIO_Port, GROUP3_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GROUP4_GPIO_Port, GROUP4_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(GROUP5_GPIO_Port, GROUP5_Pin, GPIO_PIN_RESET);
-
-	// power-off delay
-	for (volatile uint32_t i=0; i<T_POFF; ++i){}
-
-	// sets one specific group high
-	HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_SET);
-
-	// power-on delay
-	for (volatile uint32_t i=0; i<T_PON; ++i){}
-}
-
-// reads hall sensor values
-void getSensorValues(int16_t* values){
-	int16_t buffer[SENSOR_COUNT];
-
-	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin);	// enable group 1
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin);	// enable group 2
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[4]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin);	// enable group 3
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[8]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin);	// enable group 4
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[12]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin);	// enable group 5
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[16]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	// rearranging the values according to the look-up table. This is not really necessary, but helps with data visualization.
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-		values[i] = buffer[sensorOrderLUT[i]];
-	}
-}
-
-// applies offset to the sensor values to make average zero
-void offsetSensorValues(int16_t* values){
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-		values[i] -= sensorOffsets[i];
-	}
-}
-
-// interpolates sensor values
-void interpolateSensorValues(int16_t* originalValues, int32_t* interpolatedValues) {
-	// fill array with original values
-	for(int i=0; i<SENSOR_COUNT; ++i) {
-		interpolatedValues[i*4] = (int32_t) originalValues[i];
-	}
-
-	// fill gaps between original values with their averages
-	for(int i=2; i<INTERPOLATED_SENSOR_ARRAY_LENGTH; i+=4) {
-		interpolatedValues[i-1] 	= (interpolatedValues[i-2] + interpolatedValues[i-2] + interpolatedValues[i-2] + interpolatedValues[i+2])/4;
-		interpolatedValues[i] 		= (interpolatedValues[i-2] + interpolatedValues[i-2] + interpolatedValues[i+2] + interpolatedValues[i+2])/4;
-		interpolatedValues[i+1] 	= (interpolatedValues[i-2] + interpolatedValues[i+2] + interpolatedValues[i+2] + interpolatedValues[i+2])/4;
-	}
-}
-
-// finds sensor position
-int32_t diff[MAGNETIC_PATTERN_LENGTH];	// difference between magnetic pattern and sensor readings is stored here
-uint16_t calculateSensorPosition(int32_t* interpolatedValues) {
-	int32_t minimum = 0x7FFFFFFF;
-	uint16_t minimumPos = 0;
-
-	for(uint32_t diffPos=0; diffPos<MAGNETIC_PATTERN_LENGTH; ++diffPos) {			// iterating through angles in magnetic pattern
-		diff[diffPos] = 0;	// setting previous value to 0
-
-		for(uint32_t valTau=0; valTau<INTERPOLATED_SENSOR_ARRAY_LENGTH; ++valTau){	// adding up difference between magnetic pattern and interpolated values
-			int32_t difference = magneticPattern[(diffPos + valTau) % MAGNETIC_PATTERN_LENGTH] - interpolatedValues[valTau];
-			diff[diffPos] += difference*difference;
-		}
-
-		if (diff[diffPos] < minimum) {
-			minimum = diff[diffPos];
-			minimumPos = (uint16_t) diffPos;
-		}
-	}
-
-	return minimumPos;
-}
-*/
-
-
-
-/*// reads ADC values and stores them into the provided array
-void updateHallSensorValues(int16_t* values){
-	int16_t buffer[SENSOR_COUNT];
-
-	activateSensorGroup(GROUP1_GPIO_Port, GROUP1_Pin, 1000);	// enable group 1
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[0]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP2_GPIO_Port, GROUP2_Pin, 1000);	// enable group 2
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[4]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP3_GPIO_Port, GROUP3_Pin, 1000);	// enable group 3
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[8]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP4_GPIO_Port, GROUP4_Pin, 1000);	// enable group 4
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[12]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	activateSensorGroup(GROUP5_GPIO_Port, GROUP5_Pin, 1000);	// enable group 5
-	HAL_ADC_Start_DMA(&hadc2, (uint32_t* ) &(buffer[16]), 4);
-	HAL_ADC_PollForConversion(&hadc2, 5);
-	HAL_ADC_Stop_DMA(&hadc2);
-
-	// rearranging the values according to the look-up table
-	for (uint16_t i=0; i<SENSOR_COUNT; ++i) {
-		values[i] = buffer[sensorOrderLUT[i]];
-	}
-
-	// removing offsets
-	removeOffsets(values);
-
-	// expanding sensor data
-
-
-
-
-	//HAL_ADC_Stop_DMA(ADC_HandleTypeDef *hadc)
-
-	//HAL_ADC_Start(ADC_HandleTypeDef *hadc);
-	//HAL_StatusTypeDef HAL_ADC_PollForEvent(ADC_HandleTypeDef *hadc, uint32_t EventType, uint32_t Timeout)
-}*/
 
 
 
