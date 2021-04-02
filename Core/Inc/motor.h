@@ -16,7 +16,7 @@
 void motorEnable();
 
 // sets PWM to the provided value. Sign sets direction, (+) being forward.
-void motorSetPWM(int32_t pwmValue);
+void motorSetPWM(int8_t pwmValue);
 
 // sets target where rotary joint must be
 void motorSetTarget(uint8_t newTargetValue);

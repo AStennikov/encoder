@@ -77,16 +77,13 @@ void updateSensorValues(uint32_t* sensorValues) {
 // offset: starting value in sensorValueTable
 // length: how many values in a row are evaluated
 // automatically loops if offset + length exceeds POSITION_COUNT
-uint16_t calculateSensorPosition(uint32_t* sensorValues, uint16_t offset, uint16_t length) {
+uint8_t calculateSensorPosition(uint32_t* sensorValues, uint8_t offset, uint8_t length) {
 	uint32_t minimum = 0xFFFFFFFF;
-	uint16_t minimumPos = offset;
+	uint8_t minimumPos = offset;
 
-	uint16_t positionMask = POSITION_COUNT-1;		// position mask for looping indexes when they overflow POSITION_COUNT
+	uint8_t position = offset;		// index of a 20-sensor snapshot in sensorValueTable[][] currently processed
 
-	uint16_t position = offset & positionMask;		// index of a 20-sensor snapshot in sensorValueTable[][] currently processed
-
-
-	for (int32_t i=0; i<length; ++i) {
+	for (int32_t i=0; i<=length; ++i) {
 		diff[position] = 0;
 		diff[position] = __USADA8(sensorValues[0], sensorValueTable[position][0], diff[position]);
 		diff[position] = __USADA8(sensorValues[1], sensorValueTable[position][1], diff[position]);
@@ -101,8 +98,8 @@ uint16_t calculateSensorPosition(uint32_t* sensorValues, uint16_t offset, uint16
 			minimumPos = position;
 		}
 
-		// incrementing position with overflow control
-		position = (position+1)&positionMask;
+		// incrementing position
+		position += 1;
 	}
 
 	return minimumPos;

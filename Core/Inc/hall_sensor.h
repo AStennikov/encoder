@@ -20,7 +20,7 @@ void updateSensorValues(uint32_t* sensorValues);
 // offset: starting value in sensorValueTable
 // length: how many values in a row are evaluated
 // automatically loops if offset + length exceeds POSITION_COUNT
-uint16_t calculateSensorPosition(uint32_t* sensorValues, uint16_t offset, uint16_t length);
+uint8_t calculateSensorPosition(uint32_t* sensorValues, uint8_t offset, uint8_t length);
 
 
 

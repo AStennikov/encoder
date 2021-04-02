@@ -178,14 +178,23 @@ void threadPID_Loop(void *argument)
 	//int32_t interpolatedHallSensorValues[INTERPOLATED_SENSOR_ARRAY_LENGTH];
 
 	uint32_t hallSensorValues[5] = {0,0,0,0,0};
+	uint8_t currentPosition = 0;
+	uint8_t lastPosition = 0;
 
 
-	arm_pid_instance_q15 pid;
-	arm_pid_init_q15 (&pid, 1);
+	//arm_pid_instance_q15 pid;
+	//arm_pid_init_q15 (&pid, 1);
 
 	// positive pwm turns joint (worm gear motor) in the same direction as marked by arrow
 
+
+	// gets initial position and sets it as target
+	updateSensorValues(hallSensorValues);
+	currentPosition = calculateSensorPosition(hallSensorValues, 0, 0xff);
+	lastPosition = currentPosition;
+
 	motorEnable();
+	motorSetTarget(currentPosition);
 	motorSetPWM(0);
 
 
@@ -219,6 +228,42 @@ void threadPID_Loop(void *argument)
 	TickType_t current_time = xTaskGetTickCount();
 	TickType_t elapsedTime = current_time - previous_time;*/
 
+	/*float kp = 35;
+	float ki = 0.07;
+	float kd = 0;
+	float kpe = 0;
+	float kpi = 0;
+	float kpd = 0;
+	float error = 0;
+	float error_i = 0;
+	float error_d = 0;
+	float last_error = 0;
+	float pwm_d = 0;
+	uint8_t pwm_8 = 0;
+	int16_t motor_direction = -1;
+
+	TickType_t previous_time = xTaskGetTickCount();
+	TickType_t current_time = xTaskGetTickCount();
+	TickType_t elapsedTime = current_time - previous_time;*/
+
+
+
+	float error = 0;
+	float last_error = 0;
+	float error_p_f = 0;
+	float error_i_f = 0;
+	float error_i_decay = 0.99;
+
+	float kp = 0.7;
+	float ki = 0.05;
+	float pid_output = 0;
+
+
+	int8_t pwm = 0;
+	int8_t error_p = 0;
+	int8_t error_i = 0;
+	int8_t error_d = 0;
+
 
 
 	/* Infinite loop */
@@ -242,13 +287,36 @@ void threadPID_Loop(void *argument)
 
 
 		updateSensorValues(hallSensorValues);
-		uint16_t currentPosition = calculateSensorPosition(hallSensorValues, 0, 256);
+		currentPosition = calculateSensorPosition(hallSensorValues, 0, 0xff);
 
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
 
+		// pid loop
+		error_p_f = (float) motorGetTarget() - currentPosition;
+		if (error_p_f > -2 && error_p_f < 2) {error_p_f = 0;}
+		error_i_f += error_p_f*ki;
+		// zeroing error_i when error_p crosses zero
+		if (error_p_f > 0 && error_i_f < 0) {error_i_f = 0;}
+		if (error_p_f < 0 && error_i_f > 0) {error_i_f = 0;}
 
 
+		error_i_f = error_i_f*error_i_decay;
+		if (error_i_f > 127) {error_i_f = 127;}
+		if (error_i_f < -128) {error_i_f = -128;}
+
+		pid_output = error_p_f*kp + error_i_f;
+
+
+		if (pid_output > 127) {pid_output = 127;}
+		if (pid_output < -128) {pid_output = -128;}
+
+
+		pwm = (int8_t) pid_output;
+		error_p = (int8_t) error_i_f;
+		error_i = (int8_t) error_i_f;
+
+		motorSetPWM(pwm);
 
 
 		/*// 0.5ms
@@ -340,17 +408,17 @@ void threadPID_Loop(void *argument)
 		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, data);
 		*/
 
-		/*uint8_t data[8];
-		data[0] = (uint8_t) (currentPosition>>0);
-		data[1] = (uint8_t) (currentPosition>>8);
-		data[2] = 0;
-		data[3] = 0;
-		data[4] = 0;
-		data[5] = 0;
+		uint8_t data[8];
+		data[0] = motorGetTarget();
+		data[1] = currentPosition;
+		data[2] = 0xff;//pwm;
+		data[3] = error_p;
+		data[4] = error_i;
+		data[5] = 0;//error_d;
 		data[6] = 0;
-		data[7] = 0;*/
+		data[7] = 0;
 
-		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 2, (uint8_t*) &currentPosition);
+		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
 
 		/*//int16_t kpi_16 = (int16_t) kpi;
 		data[0] = 0;

@@ -87,6 +87,9 @@
         <sourceEntry>
           <name>Middlewares</name>
         </sourceEntry>
+        <sourceEntry>
+          <name>Library</name>
+        </sourceEntry>
       </sourceEntries>
       <Groups />
     </Project>
