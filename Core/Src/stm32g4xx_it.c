@@ -196,8 +196,7 @@ void FDCAN1_IT0_IRQHandler(void)
 		switch (header.Identifier)
 		{
 			case CAN_CONTROL_MSG_ID:
-				//motorSetTarget((uint16_t) data[(JOINT_NUMBER-1)*2 << 8 ] + data[(JOINT_NUMBER-1)*2 + 1]);
-				motorSetTarget((uint16_t*) &data[(JOINT_NUMBER-1)*2]);
+				motorSetTarget(data[(JOINT_NUMBER-1)]);
 				break;
 
 		    case CAN_CALIBRATION_MESSAGE_ID:

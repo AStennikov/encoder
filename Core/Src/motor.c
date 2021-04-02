@@ -12,7 +12,7 @@
 
 // global variables
 uint16_t motorTargetUpdated = 0;	// is set to 1 when motor target is updated
-uint16_t motorTarget = 0x100;			// shows where rotary joint must be. Matches array index.
+uint8_t motorTarget = 0;			// shows where rotary joint must be. Matches array index.
 
 // turns motor on, starts PWM
 void motorEnable(){
@@ -38,23 +38,26 @@ void motorSetPWM(int32_t pwmValue) {
 	if(pwmValue > 255) {pwmValue = 255;}
 
 	// find direction, set PWM channels (CH1 = IN2, CH2 = IN1)
-	if (pwmValue >= 0) {	// forward or no movement
+	if (pwmValue > 0) {				// forward
 		htim3.Instance->CCR1 = 0;
 		htim3.Instance->CCR2 = pwmValue;
-	} else {				// reverse
+	} else if(pwmValue < 0) {		// reverse
 		htim3.Instance->CCR2 = 0;
 		htim3.Instance->CCR1 = pwmValue*(-1);
+	} else {						// brake
+		htim3.Instance->CCR1 = 255;
+		htim3.Instance->CCR2 = 255;
 	}
 
 }
 
 // sets target where rotary joint must be
-void motorSetTarget(uint16_t *newTargetValue) {
+void motorSetTarget(uint8_t newTargetValue) {
 	motorTargetUpdated = 1;
-	motorTarget = *newTargetValue;
+	motorTarget = newTargetValue;
 }
 
-uint16_t motorGetTarget() {
+uint8_t motorGetTarget() {
 	return motorTarget;
 }
 

@@ -179,8 +179,16 @@ void threadPID_Loop(void *argument)
 
 	uint32_t hallSensorValues[5] = {0,0,0,0,0};
 
+
+	arm_pid_instance_q15 pid;
+	arm_pid_init_q15 (&pid, 1);
+
+	// positive pwm turns joint (worm gear motor) in the same direction as marked by arrow
+
 	motorEnable();
 	motorSetPWM(0);
+
+
 
 	/*// CAN message for transmission
 	FDCAN_TxHeaderTypeDef txh;
@@ -238,7 +246,7 @@ void threadPID_Loop(void *argument)
 
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
-		//uint32_t result = __USADA8(0x01010000, 0x00000101, 0x00000006);
+
 
 
 

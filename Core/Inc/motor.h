@@ -19,8 +19,8 @@ void motorEnable();
 void motorSetPWM(int32_t pwmValue);
 
 // sets target where rotary joint must be
-void motorSetTarget(uint16_t *newTargetValue);
+void motorSetTarget(uint8_t newTargetValue);
 
-uint16_t motorGetTarget();
+uint8_t motorGetTarget();
 
 #endif /* INC_MOTOR_H_ */
