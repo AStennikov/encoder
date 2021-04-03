@@ -248,15 +248,23 @@ void threadPID_Loop(void *argument)
 
 
 
-	float error = 0;
+	//float error = 0;
 	float last_error = 0;
 	float error_p_f = 0;
 	float error_i_f = 0;
-	float error_i_decay = 0.99;
+	float error_d_f = 0;
+	//float error_i_decay = 0.99;
 
-	float kp = 0.7;
-	float ki = 0.05;
+	float kp = 100;
+	float ki = 0.001;		// cannot be set to 0
+	float kd = 0.001;
 	float pid_output = 0;
+
+	float dt = 0.01;		// time change 10ms
+
+
+	float ti = kp/ki;
+	float td = kd/kp;
 
 
 	int8_t pwm = 0;
@@ -291,8 +299,31 @@ void threadPID_Loop(void *argument)
 
 		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
+		// new pid implementation
+		error_p_f = (float) motorGetTarget() - currentPosition;
+		error_i_f += error_p_f*dt;
+		if (error_i_f > 127) {error_i_f = 127;}
+		if (error_i_f < -127) {error_i_f = -127;}
+		error_d_f = (error_p_f - last_error)/dt;
+		if (error_d_f > 127) {error_d_f = 127;}
+		if (error_d_f < -127) {error_d_f = -127;}
 
-		// pid loop
+		pid_output = kp*(error_p_f + error_i_f/ti + error_d_f*td);
+
+
+		if (pid_output > 127) {pid_output = 127;}
+		if (pid_output < -127) {pid_output = -127;}
+
+		pwm = (int8_t) pid_output;
+		error_p = (int8_t) error_p_f;
+		error_i = (int8_t) error_i_f;
+		error_d = (int8_t) error_d_f;
+
+		last_error = error_p_f;
+
+		motorSetPWM(pwm);
+
+		/*// pid loop
 		error_p_f = (float) motorGetTarget() - currentPosition;
 		if (error_p_f > -2 && error_p_f < 2) {error_p_f = 0;}
 		error_i_f += error_p_f*ki;
@@ -313,10 +344,10 @@ void threadPID_Loop(void *argument)
 
 
 		pwm = (int8_t) pid_output;
-		error_p = (int8_t) error_i_f;
+		error_p = (int8_t) error_p_f;
 		error_i = (int8_t) error_i_f;
 
-		motorSetPWM(pwm);
+		motorSetPWM(pwm);*/
 
 
 		/*// 0.5ms
@@ -411,14 +442,16 @@ void threadPID_Loop(void *argument)
 		uint8_t data[8];
 		data[0] = motorGetTarget();
 		data[1] = currentPosition;
-		data[2] = 0xff;//pwm;
+		data[2] = pwm;
 		data[3] = error_p;
 		data[4] = error_i;
-		data[5] = 0;//error_d;
+		data[5] = error_d;
 		data[6] = 0;
 		data[7] = 0;
 
 		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
+
+
 
 		/*//int16_t kpi_16 = (int16_t) kpi;
 		data[0] = 0;

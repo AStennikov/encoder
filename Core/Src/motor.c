@@ -37,20 +37,21 @@ void motorEnable(){
 int32_t pwm_compensate_for_friction(int8_t pwmValue) {
 	int32_t result = 0;
 
-	if (pwmValue > 0) {
-		result = (pwmValue) + 63;
+	result = (int32_t) pwmValue;
+	/*if (pwmValue > 0) {
+		result = (int32_t) pwmValue + 63;
 	} else if (pwmValue < 0) {
-		result = (pwmValue) - 64;
+		result = (int32_t) pwmValue - 64;
 	} else {
 		result = 0;
-	}
+	}*/
 	/*if (pwmValue > 0) {result = 127;}
 	if (pwmValue < 0) {result = -128;}
 	if (pwmValue == 0) {result = 0;}*/
 
 	// clamp values
 	if (result > 127) {result = 127;}
-	if (result < -128) {result = -128;}
+	if (result < -127) {result = -127;}
 
 	return result;
 }
@@ -58,8 +59,23 @@ int32_t pwm_compensate_for_friction(int8_t pwmValue) {
 // sets PWM to the provided value. Sign sets direction, (+) being forward. Range: -255 to 255
 void motorSetPWM(int8_t pwmValue) {
 
+	if (pwmValue == -128) {pwmValue = -127;}		// otherwise -128*-1 = -128 in next step
+
+	pwmValue = pwmValue*direction;
+
+	if (pwmValue > 0) {				// forward
+		htim3.Instance->CCR1 = 0;
+		htim3.Instance->CCR2 = pwmValue;
+	} else if(pwmValue < 0) {		// reverse
+		htim3.Instance->CCR2 = 0;
+		htim3.Instance->CCR1 = pwmValue*(-1);
+	} else {						// brake
+		htim3.Instance->CCR1 = 127;
+		htim3.Instance->CCR2 = 127;
+	}
+
 	// find direction, set PWM channels (CH1 = IN2, CH2 = IN1)
-	int32_t pwm = pwm_compensate_for_friction(pwmValue*direction);
+	/*int32_t pwm = pwm_compensate_for_friction(pwmValue*direction);
 	if (pwm > 0) {				// forward
 		htim3.Instance->CCR1 = 0;
 		htim3.Instance->CCR2 = pwm;
@@ -69,7 +85,7 @@ void motorSetPWM(int8_t pwmValue) {
 	} else {						// brake
 		htim3.Instance->CCR1 = 255;
 		htim3.Instance->CCR2 = 255;
-	}
+	}*/
 
 }
 
