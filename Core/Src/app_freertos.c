@@ -693,17 +693,31 @@ void thread3(void *argument)
 
 void threadMain(void *argument)
 {
+  HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+
+  char* pointer = (char*)0x0801f800;
+
+  char result = pointer[0];
+
+  HAL_FLASH_Unlock();
+
+
+
 
   for(;;)
   {
     osDelay(100);
+    if (result == 0xff) {
+      HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
+    }
+
   }
 }
 
 void threadLED(void *argument)
 {
   TickType_t xLastWakeTime = xTaskGetTickCount(); // current time
-  TickType_t xFrequency = 25; // how ofthen this thread is executed, ms
+  TickType_t xFrequency = 25; // how often this thread is executed, ms
 
   LED_t green;
   LED_Init(&green, 0x30fff000);
