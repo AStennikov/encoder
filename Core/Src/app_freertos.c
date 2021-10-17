@@ -61,6 +61,21 @@ const osThreadAttr_t myTask03_attributes = {
   .priority = (osPriority_t) osPriorityLow,
   .stack_size = 128 * 4
 };
+
+osThreadId_t threadMainHandle;
+const osThreadAttr_t threadMain_attributes = {
+  .name = "Main",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+
+osThreadId_t threadLEDHandle;
+const osThreadAttr_t threadLED_attributes = {
+  .name = "LED",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
+
 /* USER CODE END Variables */
 /* Definitions for PID */
 osThreadId_t PIDHandle;
@@ -97,6 +112,8 @@ const osMutexAttr_t uartMutex_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void thread3(void *argument);
+void threadMain(void *argument);
+void threadLED(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void threadPID_Loop(void *argument);
@@ -151,6 +168,8 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   myTask03Handle = osThreadNew(thread3, NULL, &myTask03_attributes);
+  threadMainHandle = osThreadNew(threadMain, NULL, &threadMain_attributes);
+  threadLEDHandle = osThreadNew(threadLED, NULL, &threadLED_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -668,6 +687,24 @@ void thread3(void *argument)
 		  HAL_UART_Transmit(&huart1, &buffer, 1, 10);
 		  xSemaphoreGive(uartMutexHandle);*/
 	  }
+  }
+}
+
+void threadMain(void *argument)
+{
+
+  for(;;)
+  {
+    osDelay(1);
+  }
+}
+
+void threadLED(void *argument)
+{
+
+  for(;;)
+  {
+    osDelay(1);
   }
 }
 /* USER CODE END Application */
