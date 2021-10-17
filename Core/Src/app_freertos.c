@@ -36,6 +36,7 @@
 #include <string.h>
 #include "motor.h"
 #include "fdcan.h"
+#include "LED.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -160,14 +161,14 @@ void MX_FREERTOS_Init(void) {
   PIDHandle = osThreadNew(threadPID_Loop, NULL, &PID_attributes);
 
   /* creation of myTask02 */
-  myTask02Handle = osThreadNew(thread2, NULL, &myTask02_attributes);
+  //myTask02Handle = osThreadNew(thread2, NULL, &myTask02_attributes);
 
   /* creation of greenLED_Blink */
-  greenLED_BlinkHandle = osThreadNew(threadGreenLED, NULL, &greenLED_Blink_attributes);
+  //greenLED_BlinkHandle = osThreadNew(threadGreenLED, NULL, &greenLED_Blink_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  myTask03Handle = osThreadNew(thread3, NULL, &myTask03_attributes);
+  //myTask03Handle = osThreadNew(thread3, NULL, &myTask03_attributes);
   threadMainHandle = osThreadNew(threadMain, NULL, &threadMain_attributes);
   threadLEDHandle = osThreadNew(threadLED, NULL, &threadLED_attributes);
   /* USER CODE END RTOS_THREADS */
@@ -296,7 +297,7 @@ void threadPID_Loop(void *argument)
 	/* Infinite loop */
 	for(;;)
 	{
-		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+		//HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
 
 		// rough pseudocode:
 		// 		get hall sensor readings
@@ -316,7 +317,7 @@ void threadPID_Loop(void *argument)
 		updateSensorValues(hallSensorValues);
 		currentPosition = calculateSensorPosition(hallSensorValues, 0, 0xff);
 
-		HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+		//HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
 
 		// new pid implementation
 		error_p_f = (float) motorGetTarget() - currentPosition;
@@ -468,7 +469,7 @@ void threadPID_Loop(void *argument)
 		data[6] = 0;
 		data[7] = 0;
 
-		CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
+		//CAN_SendSimple(CAN_STATUS_MESSAGE_ID, 8, data);
 
 
 
@@ -507,9 +508,9 @@ void threadPID_Loop(void *argument)
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, data);
 		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 4, data);*/
 
-		CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
+		/*CAN_SendSimple(CAN_SENSOR_GROUP_1_MSG_ID, 8, (uint8_t*) &hallSensorValues[0]);
 		CAN_SendSimple(CAN_SENSOR_GROUP_2_MSG_ID, 8, (uint8_t*) &hallSensorValues[2]);
-		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 4, (uint8_t*) &hallSensorValues[4]);
+		CAN_SendSimple(CAN_SENSOR_GROUP_3_MSG_ID, 4, (uint8_t*) &hallSensorValues[4]);*/
 
 
 		/*data[0] = (uint8_t) (sensorValue(0) >> 0);
@@ -619,7 +620,7 @@ void thread2(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(100);
   }
   /* USER CODE END thread2 */
 }
@@ -695,16 +696,21 @@ void threadMain(void *argument)
 
   for(;;)
   {
-    osDelay(1);
+    osDelay(100);
   }
 }
 
 void threadLED(void *argument)
 {
+  TickType_t xLastWakeTime = xTaskGetTickCount(); // current time
+  TickType_t xFrequency = 25; // how ofthen this thread is executed, ms
 
-  for(;;)
-  {
-    osDelay(1);
+  LED_t green;
+  LED_Init(&green, 0x30fff000);
+
+  while(1) {
+    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, LED_NextState(&green));
+    vTaskDelayUntil(&xLastWakeTime, xFrequency);  // Wait for the next cycle.
   }
 }
 /* USER CODE END Application */
